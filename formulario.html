@@ -11,14 +11,15 @@
 <body><main class="wrap" id="app"></main>
 <script>
 const app=document.getElementById('app');
-const KEY='baruc_reports_v1';
+// Pega aquí la URL de la aplicación web de Apps Script que termina en /exec.
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxStFje_WgY-0YzPAQB3O05KVtMzbgWe71WjPWQ4Kn-etGQSZ2tUDPqE32V_3slww3etA/exec';
 const monthNames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 function currentMonth(){const d=new Date();return `${monthNames[d.getMonth()]} ${d.getFullYear()}`}
 function read(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
 function save(a){localStorage.setItem(KEY,JSON.stringify(a))}
 let f={step:1,name:'',type:'',participation:'',courses:'',hours:'',facet:'',extra:'',error:'',sent:false};
 function shell(body){app.innerHTML=`<div class="brand"><img src="assets/logo-baruc.png" alt="Barúc"><div><b>Barúc</b><small>Informe mensual de publicadores</small></div></div>${body}`}
-function render(){if(f.sent){shell(`<div class="card success"><div class="check">✓</div><h1>Informe enviado correctamente</h1><p>Tu informe de <b>${currentMonth()}</b> quedó registrado en este dispositivo.</p><p class="mini">En la versión conectada con Google Apps Script, el informe llegará automáticamente a la administración.</p><button class="btn" onclick="f={step:1,name:'',type:'',participation:'',courses:'',hours:'',facet:'',extra:'',error:'',sent:false};render()">Enviar otro informe</button></div>`);return}
+function render(){if(f.sent){shell(`<div class="card success"><div class="check">✓</div><h1>Solicitud enviada</h1><p>El formulario se transmitió para el informe de <b>${currentMonth()}</b>.</p><p class="mini">Por seguridad, esta pantalla no puede confirmar la respuesta del servidor. La administración debe comprobar que el informe aparece en la base de datos.</p><button class="btn" onclick="f={step:1,name:'',type:'',participation:'',courses:'',hours:'',facet:'',extra:'',error:'',sent:false};render()">Enviar otro informe</button></div>`);return}
 if(f.step===1){shell(`<div class="card"><div class="step"><span class="on"></span><span></span></div><h1>Informe mensual</h1><p>Complete sus datos. El mes se determina automáticamente según la fecha del dispositivo.</p><div class="notice"><b>Mes del informe: ${currentMonth()}</b></div><div class="formgrid"><div class="full"><label class="label">Nombre y apellido</label><input id="name" value="${esc(f.name)}" placeholder="Escriba su nombre"></div><div class="full"><label class="label">Seleccione una categoría</label><div class="choice"><label><input type="radio" name="type" value="Publicador" ${f.type==='Publicador'?'checked':''}> Publicador</label><label><input type="radio" name="type" value="Precursor Auxiliar" ${f.type==='Precursor Auxiliar'?'checked':''}> Precursor auxiliar</label><label><input type="radio" name="type" value="Precursor Regular" ${f.type==='Precursor Regular'?'checked':''}> Precursor regular</label></div></div>${f.error?`<div class="full alert">⚠ ${esc(f.error)}</div>`:''}<div class="full actions"><button class="btn" onclick="next()">Continuar</button></div></div></div>`);return}
 let body='';
 if(f.type==='Publicador')body=`<div><label class="label">¿Participó en alguna faceta de la predicación durante el mes?</label><select id="part"><option value="">Seleccione…</option><option ${f.participation==='Sí'?'selected':''}>Sí</option><option ${f.participation==='No'?'selected':''}>No</option></select></div><div><label class="label">Cursos bíblicos conducidos</label><input id="courses" type="number" min="0" step="1" value="${esc(f.courses)}"></div>`;
@@ -26,8 +27,38 @@ else if(f.type==='Precursor Auxiliar')body=`<div><label class="label">Horas de p
 else body=`<div><label class="label">Horas de predicación</label><input id="hours" type="number" min="0" step="0.5" value="${esc(f.hours)}"></div><div><label class="label">Cursos bíblicos</label><input id="courses" type="number" min="0" step="1" value="${esc(f.courses)}"></div><div><label class="label">¿Colabora con el LDC u otra faceta?</label><select id="facet"><option value="">Seleccione…</option><option ${f.facet==='Sí'?'selected':''}>Sí</option><option ${f.facet==='No'?'selected':''}>No</option></select></div><div><label class="label">Horas de LDC / otra faceta</label><input id="extra" type="number" min="0" step="0.5" value="${esc(f.extra)}"></div><div class="full notice">Las horas de predicación y las horas de LDC/otra faceta se almacenan por separado. El control anual de las 600 horas se realizará en la tarjeta del publicador.</div>`;
 shell(`<div class="card"><div class="step"><span class="on"></span><span class="on"></span></div><h1>Informe de ${esc(f.type)}</h1><p><b>${esc(f.name)}</b> · ${currentMonth()}</p><div class="formgrid">${body}${f.error?`<div class="full alert">⚠ ${esc(f.error)}</div>`:''}<div class="full actions"><button class="btn secondary" onclick="f.step=1;f.error='';render()">Atrás</button><button class="btn green" onclick="submit()">Enviar informe</button></div></div></div>`)}
 function next(){f.name=document.getElementById('name').value.trim();const r=document.querySelector('input[name="type"]:checked');f.type=r?r.value:'';f.error='';if(!f.name||!f.type){f.error='Complete el nombre y seleccione una categoría.';render();return}f.step=2;render()}
-function submit(){f.error='';if(f.type==='Publicador'){f.participation=document.getElementById('part').value;f.courses=document.getElementById('courses').value;if(!f.participation||f.courses===''){f.error='Complete todos los campos antes de enviar.';render();return}}else{f.hours=Number(document.getElementById('hours').value||0);f.courses=Number(document.getElementById('courses').value||0);if(f.type==='Precursor Regular'){f.facet=document.getElementById('facet').value;f.extra=Number(document.getElementById('extra').value||0);if(!f.facet){f.error='Indique si colabora con el LDC u otra faceta.';render();return}if(f.hours+f.extra>55){f.error=`Las horas de predicación (${f.hours}) más las horas de LDC/otra faceta (${f.extra}) suman ${f.hours+f.extra}. Ajuste los valores hasta 55 horas o menos.`;render();return}}if(f.hours<0||f.courses<0){f.error='Los valores no pueden ser negativos.';render();return}}
-const a=read();const rec={month:currentMonth(),name:f.name,type:f.type,participation:f.participation||null,courses:Number(f.courses||0),hours:f.type==='Publicador'?null:Number(f.hours||0),extraHours:f.type==='Precursor Regular'?Number(f.extra||0):0,facet:f.facet||null,submittedAt:new Date().toISOString()};const i=a.findIndex(x=>x.month===rec.month&&x.name.toLowerCase()===rec.name.toLowerCase());if(i>=0)a[i]=rec;else a.push(rec);save(a);f.sent=true;render()}
+async function submit(){
+f.error='';
+if(APPS_SCRIPT_URL==='PEGA_AQUI_LA_URL_DE_APPS_SCRIPT'||!APPS_SCRIPT_URL.startsWith('https://script.google.com/macros/s/')||!APPS_SCRIPT_URL.endsWith('/exec')){
+ f.error='La conexión con Google Drive todavía no está configurada. Contacte a la administración.';render();return;
+}
+if(f.type==='Publicador'){
+ f.participation=document.getElementById('part').value;
+ f.courses=document.getElementById('courses').value;
+ if(!f.participation||f.courses===''){f.error='Complete todos los campos antes de enviar.';render();return;}
+}else{
+ f.hours=Number(document.getElementById('hours').value||0);
+ f.courses=Number(document.getElementById('courses').value||0);
+ if(f.type==='Precursor Regular'){
+  f.facet=document.getElementById('facet').value;
+  f.extra=Number(document.getElementById('extra').value||0);
+  if(!f.facet){f.error='Indique si colabora con el LDC u otra faceta.';render();return;}
+  if(f.hours+f.extra>55){f.error=`Las horas de predicación (${f.hours}) más las horas de LDC/otra faceta (${f.extra}) suman ${f.hours+f.extra}. Ajuste los valores hasta 55 horas o menos.`;render();return;}
+ }
+ if(!Number.isFinite(f.hours)||f.hours<0||!Number.isFinite(f.courses)||f.courses<0||!Number.isInteger(f.courses)){f.error='Revise las horas y los cursos. Los cursos deben ser un número entero y los valores no pueden ser negativos.';render();return;}
+}
+const button=document.querySelector('.btn.green');
+if(button){button.disabled=true;button.textContent='Enviando…';}
+const payload=new URLSearchParams({name:f.name,type:f.type,participation:f.participation||'',courses:String(Number(f.courses||0)),hours:String(Number(f.hours||0)),facet:f.facet||'',extraHours:String(Number(f.extra||0))});
+try{
+ // Apps Script no expone una respuesta CORS legible desde GitHub Pages; no-cors permite enviar el formulario,
+ // pero el navegador no puede confirmar el resultado del servidor.
+ await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:payload});
+ f.sent=true;render();
+}catch(err){
+ f.error='No se pudo enviar. Compruebe su conexión a Internet e inténtelo de nuevo.';render();
+}
+}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 render();
 </script></body></html>
